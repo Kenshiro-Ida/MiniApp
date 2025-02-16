@@ -28,9 +28,10 @@
         }
         .header-image {
             width: 100%;
-            max-width: 230px;
+            max-width: 100px;
             border-radius: 12px;
             margin-bottom: 16px;
+            margin-left: 70%;
         }
         .button-grid {
             display: grid;
@@ -55,8 +56,6 @@
         .menu-button:active {
             opacity: 0.8;
         }
-
-        /* Address View Styles */
         .view {
             display: none;
         }
@@ -105,18 +104,67 @@
             cursor: pointer;
             margin-top: 20px;
         }
+        /* Hidden input for clipboard copying */
+        #hidden-copy-input {
+            position: absolute;
+            left: -9999px;
+            top: -9999px;
+            opacity: 0;
+        }
+        .balance-info {
+        font-size: 10px;
+        color: #038597;
+        font-weight: bold;
+        position: absolute;
+        top: 22%;
+        left: 31%;
+        transform: translate(-50%, -50%);
+        z-index: 10;
+        padding: 15px;
+        border-radius: 8px;
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 2px;
+        border-radius: 5px;
+    }
+
+    
+    .balance-info div {
+        background-color: #f1f1f1;
+        padding: 8px;
+        border-radius: 6px;
+        text-align: center;
+        font-weight: bold;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        user-select: none;
+        pointer-events: none;
+        cursor: default;
+        border: 1px solid #038597;
+        min-width: 70px;
+    }
+
     </style>
 </head>
 <body>
+    <!-- Hidden input for clipboard -->
+    <input type="text" id="hidden-copy-input">
+    
     <!-- Main Menu View -->
     <div id="menuView" class="view active">
         <div class="overlay">
             <h1 class="header-title">Pocket Money</h1>
             <img src="WhatsApp Image 2025-02-15 at 16.40.29.jpeg" alt="Header Image" class="header-image">
+            
+            <div class="balance-info">
+                <div>💰 Deposit-Balance:<span id="depositBalance">0 USDT</span></div>
+                <div>📈 Stake-Balance:<span id="stakeBalance">0 USDT</span></div>
+                <div>💸 Withdraw-Balance:<span id="withdrawBalance">0 USDT</span></div>
+                <div>💸 Withdraw-Balance:<span id="withdrawBalance">0 USDT</span></div>
+            </div>
         </div>
 
         <div class="button-grid">
-            <button class="menu-button" onclick="handleButton(1)">🏠 Address</button>
+            <button class="menu-button" onclick="handleAddress()">🏠 Address</button>
             <button class="menu-button" onclick="handleButton(2)">📈 Stake Now</button>
             <button class="menu-button" onclick="handleButton(3)">👤 My Info</button>
             <button class="menu-button" onclick="handleButton(4)">🔗 My Ref Link</button>
@@ -153,27 +201,25 @@
         
         // Enable closing animations
         webapp.enableClosingConfirmation();
-    
+        
+        // Store the address from URL parameter
+        let userAddress = '';
+        
         // Function to get URL parameters
         function getUrlParameter(name) {
             const urlParams = new URLSearchParams(window.location.search);
             return urlParams.get(name);
         }
     
-        // Check for address parameter on load
+        // Initialize on page load
         document.addEventListener('DOMContentLoaded', function() {
-            const address = getUrlParameter('address');
-            if (address) {
-                showAddressView(address);
-            }
+            userAddress = getUrlParameter('address');
         });
     
         function showView(viewId) {
-            // Hide all views
             document.querySelectorAll('.view').forEach(view => {
                 view.classList.remove('active');
             });
-            // Show selected view
             document.getElementById(viewId).classList.add('active');
         }
     
@@ -181,16 +227,25 @@
             showView('menuView');
         }
     
-        function showAddressView(address) {
-            // Clear existing QR code if any
+        function handleAddress() {
+            if (!userAddress) {
+                webapp.showPopup({
+                    title: 'Error',
+                    message: 'Address not available. Please try again later.',
+                    buttons: [{type: 'ok'}]
+                });
+                return;
+            }
+
+            // Clear existing QR code
             document.getElementById('qrcode').innerHTML = '';
             
             // Display address
-            document.getElementById('wallet-address').textContent = address;
+            document.getElementById('wallet-address').textContent = userAddress;
     
             // Generate QR code
             new QRCode(document.getElementById("qrcode"), {
-                text: address,
+                text: userAddress,
                 width: 200,
                 height: 200,
                 colorDark: "#000000",
@@ -202,36 +257,55 @@
         }
     
         function handleButton(option) {
-            // Send data to bot
-            webapp.sendData(JSON.stringify({
-                option: option.toString()
-            }));
-            
-            if (option !== 1) {
-                webapp.showPopup({
-                    title: 'Selection Made',
-                    message: `You selected Option ${option}`,
-                    buttons: [{
-                        type: 'ok'
-                    }]
-                });
-            }
+            webapp.showPopup({
+                title: 'Selection Made',
+                message: `You selected Option ${option}`,
+                buttons: [{type: 'ok'}]
+            });
         }
     
         function copyAddress() {
             const address = document.getElementById('wallet-address').textContent;
-            navigator.clipboard.writeText(address).then(() => {
-                webapp.showPopup({
-                    title: 'Success',
-                    message: 'Address copied to clipboard',
-                    buttons: [{type: 'ok'}]
-                });
-            }).catch(err => {
-                webapp.showPopup({
-                    title: 'Error',
-                    message: 'Failed to copy address',
-                    buttons: [{type: 'ok'}]
-                });
+            const hiddenInput = document.getElementById('hidden-copy-input');
+            
+            // Set the value to the hidden input
+            hiddenInput.value = address;
+            
+            // Select the text
+            hiddenInput.select();
+            hiddenInput.setSelectionRange(0, 99999); // For mobile devices
+            
+            try {
+                // Try the new clipboard API first
+                navigator.clipboard.writeText(address)
+                    .then(() => showCopySuccess())
+                    .catch(() => {
+                        // Fallback to document.execCommand
+                        try {
+                            document.execCommand('copy');
+                            showCopySuccess();
+                        } catch (err) {
+                            showCopyError();
+                        }
+                    });
+            } catch (err) {
+                showCopyError();
+            }
+        }
+
+        function showCopySuccess() {
+            webapp.showPopup({
+                title: 'Success',
+                message: 'Address copied to clipboard',
+                buttons: [{type: 'ok'}]
+            });
+        }
+
+        function showCopyError() {
+            webapp.showPopup({
+                title: 'Error',
+                message: 'Failed to copy address. Please try selecting and copying manually.',
+                buttons: [{type: 'ok'}]
             });
         }
     </script>
