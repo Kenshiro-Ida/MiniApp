@@ -1,43 +1,239 @@
 <!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#000000" />
-    <meta
-      name="description"
-      content="Web site created using create-react-app"
-    />
-    <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
-    <!--
-      manifest.json provides metadata used when your web app is installed on a
-      user's mobile device or desktop. See https://developers.google.com/web/fundamentals/web-app-manifest/
-    -->
-    <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
-    <!--
-      Notice the use of %PUBLIC_URL% in the tags above.
-      It will be replaced with the URL of the `public` folder during the build.
-      Only files inside the `public` folder can be referenced from the HTML.
+<html>
+<head>
+    <title>Telegram WebApp</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: #aaeae9; 
+            color: var(--tg-theme-text-color, #ffffff);
+            margin: 0;
+            padding: 16px;
+            text-align: center;
+        }
+        .overlay {
+            padding: 20px;
+            border-radius: 12px;
+            display: inline-block;
+        }
+        .header-title {
+            font-size: 28px;
+            font-weight: bold;
+            margin-top: -20px;
+            margin-bottom: 10px;
+            color: #038597
+        }
+        .header-image {
+            width: 100%;
+            max-width: 230px;
+            border-radius: 12px;
+            margin-bottom: 16px;
+        }
+        .button-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+        .menu-button {
+            background-color: #4285F4;
+            color: #ffffff;
+            border: none;
+            border-radius: 8px;
+            padding: 14px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s ease-in-out;
+        }
+        .menu-button:hover {
+            background-color: #3367D6;
+        }
+        .menu-button:active {
+            opacity: 0.8;
+        }
 
-      Unlike "/favicon.ico" or "favicon.ico", "%PUBLIC_URL%/favicon.ico" will
-      work correctly both with client-side routing and a non-root public URL.
-      Learn how to configure a non-root public URL by running `npm run build`.
-    -->
-    <title>React App</title>
-  </head>
-  <body>
-    <noscript>You need to enable JavaScript to run this app.</noscript>
-    <div id="root"></div>
-    <!--
-      This HTML file is a template.
-      If you open it directly in the browser, you will see an empty page.
+        /* Address View Styles */
+        .view {
+            display: none;
+        }
+        .view.active {
+            display: block;
+        }
+        .address-container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .qr-container {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            display: inline-block;
+            margin-bottom: 20px;
+        }
+        .wallet-text {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            word-break: break-all;
+            font-family: monospace;
+            font-size: 14px;
+            color: #038597;
+        }
+        .copy-button {
+            background-color: #4285F4;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 12px 24px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        .back-button {
+            background-color: #038597;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 12px 24px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Main Menu View -->
+    <div id="menuView" class="view active">
+        <div class="overlay">
+            <h1 class="header-title">Pocket Money</h1>
+            <img src="WhatsApp Image 2025-02-15 at 16.40.29.jpeg" alt="Header Image" class="header-image">
+        </div>
 
-      You can add webfonts, meta tags, or analytics to this file.
-      The build step will place the bundled scripts into the <body> tag.
+        <div class="button-grid">
+            <button class="menu-button" onclick="handleButton(1)">🏠 Address</button>
+            <button class="menu-button" onclick="handleButton(2)">📈 Stake Now</button>
+            <button class="menu-button" onclick="handleButton(3)">👤 My Info</button>
+            <button class="menu-button" onclick="handleButton(4)">🔗 My Ref Link</button>
+            <button class="menu-button" onclick="handleButton(5)">💰 Balance</button>
+            <button class="menu-button" onclick="handleButton(6)">💸 Income</button>
+            <button class="menu-button" onclick="handleButton(7)">🤝 Referrals</button>
+            <button class="menu-button" onclick="handleButton(8)">ℹ️ Pool Info</button>
+            <button class="menu-button" onclick="handleButton(9)">💰 Withdrawals</button>
+            <button class="menu-button" onclick="handleButton(10)">💳 Deposits</button>
+            <button class="menu-button" onclick="handleButton(11)">🔙 Withdrawals</button>
+            <button class="menu-button" onclick="handleButton(12)">🔙 MAIN MENU</button>
+        </div>
+    </div>
 
-      To begin the development, run `npm start` or `yarn start`.
-      To create a production bundle, use `npm run build` or `yarn build`.
-    -->
-  </body>
+    <!-- Address View -->
+    <div id="addressView" class="view">
+        <div class="address-container">
+            <div class="header-title">Your USDT Deposit Address</div>
+            
+            <div class="qr-container">
+                <div id="qrcode"></div>
+            </div>
+
+            <div class="wallet-text" id="wallet-address"></div>
+            <button class="copy-button" onclick="copyAddress()">Copy Address</button>
+            <br>
+            <button class="back-button" onclick="showMainMenu()">Back to Menu</button>
+        </div>
+    </div>
+
+    <script>
+        const webapp = window.Telegram.WebApp;
+        webapp.ready();
+        
+        // Enable closing animations
+        webapp.enableClosingConfirmation();
+    
+        // Function to get URL parameters
+        function getUrlParameter(name) {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get(name);
+        }
+    
+        // Check for address parameter on load
+        document.addEventListener('DOMContentLoaded', function() {
+            const address = getUrlParameter('address');
+            if (address) {
+                showAddressView(address);
+            }
+        });
+    
+        function showView(viewId) {
+            // Hide all views
+            document.querySelectorAll('.view').forEach(view => {
+                view.classList.remove('active');
+            });
+            // Show selected view
+            document.getElementById(viewId).classList.add('active');
+        }
+    
+        function showMainMenu() {
+            showView('menuView');
+        }
+    
+        function showAddressView(address) {
+            // Clear existing QR code if any
+            document.getElementById('qrcode').innerHTML = '';
+            
+            // Display address
+            document.getElementById('wallet-address').textContent = address;
+    
+            // Generate QR code
+            new QRCode(document.getElementById("qrcode"), {
+                text: address,
+                width: 200,
+                height: 200,
+                colorDark: "#000000",
+                colorLight: "#ffffff",
+                correctLevel: QRCode.CorrectLevel.H
+            });
+    
+            showView('addressView');
+        }
+    
+        function handleButton(option) {
+            // Send data to bot
+            webapp.sendData(JSON.stringify({
+                option: option.toString()
+            }));
+            
+            if (option !== 1) {
+                webapp.showPopup({
+                    title: 'Selection Made',
+                    message: `You selected Option ${option}`,
+                    buttons: [{
+                        type: 'ok'
+                    }]
+                });
+            }
+        }
+    
+        function copyAddress() {
+            const address = document.getElementById('wallet-address').textContent;
+            navigator.clipboard.writeText(address).then(() => {
+                webapp.showPopup({
+                    title: 'Success',
+                    message: 'Address copied to clipboard',
+                    buttons: [{type: 'ok'}]
+                });
+            }).catch(err => {
+                webapp.showPopup({
+                    title: 'Error',
+                    message: 'Failed to copy address',
+                    buttons: [{type: 'ok'}]
+                });
+            });
+        }
+    </script>
+</body>
 </html>
