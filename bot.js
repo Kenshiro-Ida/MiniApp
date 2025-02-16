@@ -1,14 +1,20 @@
 require('dotenv').config();
 const { Telegraf } = require('telegraf');
 const mysql = require('mysql2/promise');
+const express = require('express');
+const cors = require('cors');
 const bot = new Telegraf(process.env.BOT_TOKEN);
 
-const WEBAPP_URL = 'https://brief-presently-ladybug.ngrok-free.app';
+const app = express();
+app.use(cors());
+app.use(express.json());
+
+const WEBAPP_URL = 'https://leostar.live:3000/';
 
 const dbConfig = {
     host: "localhost",
     user: "root",
-    password: "123456",
+    password: "Admin@123",
     database: "pocket_money"
 };
 
@@ -67,16 +73,40 @@ async function processUser(telegramUserId) {
     }
 }
 
+// New endpoint to fetch user balances
+app.get('/api/balances/:userId', async (req, res) => {
+    const conn = await pool.getConnection();
+    try {
+        const [rows] = await conn.execute(
+            'SELECT Deposit_Balance, Stake_Balance, Withdraw_Balance FROM Users WHERE Telegram_User_ID = ?',
+            [req.params.userId]
+        );
+        
+        if (rows.length === 0) {
+            res.status(404).json({ error: 'User not found' });
+            return;
+        }
+        
+        res.json({
+            deposit_balance: rows[0].Deposit_Balance,
+            stake_balance: rows[0].Stake_Balance,
+            withdraw_balance: rows[0].Withdraw_Balance
+        });
+    } catch (error) {
+        console.error('Error fetching balances:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    } finally {
+        conn.release();
+    }
+});
+
 bot.command('start', async (ctx) => {
     try {
-        // Process user and get their address
         const address = await processUser(ctx.from.id.toString());
-        
-        // Send the initial menu with the address as a URL parameter
         ctx.reply('Welcome! Open the menu:', {
             reply_markup: {
                 inline_keyboard: [[
-                    { text: 'Open Menu', web_app: { url: `${WEBAPP_URL}?address=${encodeURIComponent(address)}` } }
+                    { text: 'Open Menu', web_app: { url: `${WEBAPP_URL}?address=${encodeURIComponent(address)}&userId=${ctx.from.id}` } }
                 ]]
             }
         });
