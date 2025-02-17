@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Referral Information</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: #aaeae9;
+            color: var(--tg-theme-text-color, #ffffff);
+            margin: 0;
+            padding: 16px;
+            text-align: center;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            color: #038597;
+        }
+        .info-box {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: left;
+            border: 1px solid #038597;
+            color: #038597;
+            font-weight: bold;
+            font-size: 16px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            margin-bottom: 10px;
+        }
+        .info-box span {
+            display: block;
+            margin-top: 8px;
+            font-size: 18px;
+            color: #333;
+        }
+        .referral-list {
+            text-align: left;
+            margin-top: 20px;
+            padding-left: 20px;
+        }
+        .referral-item {
+            background: #0ebdd4;
+            margin: 8px 0;
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .referral-item img {
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            margin-right: 15px;
+            object-fit: cover;
+        }
+        .back-button {
+            background-color: #038597;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 12px 24px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+        .back-button:hover {
+            background-color: #026d74;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">Referral Information</div>
+        
+        <div class="info-box">👤 Referred By: <span id="ReferralBy">Loading...</span></div>
+        <div class="info-box">💸 Referral Income: <span id="ReferralIncome">Loading...</span></div>
+        
+        <div class="header">My Referrals</div>
+        <div class="referral-list" id="referralList">
+            <!-- Referral items will be dynamically inserted here -->
+        </div>
+        
+        <button class="back-button" onclick="goBack()">Back to Menu</button>
+    </div>
+
+    <script>
+        const webapp = window.Telegram.WebApp;
+        webapp.ready();
+
+        // Dummy Data for Referral Information
+        function loadReferralInfo() {
+            document.getElementById('ReferralBy').textContent = 'JohnDoe'; 
+            document.getElementById('ReferralIncome').textContent = '$250'; 
+        }
+
+        // Dummy Referral Data with Profile Pictures
+        function loadReferralsList() {
+            const referrals = [
+                { username: 'alice123', profilePic: 'https://example.com/alice123.jpg' },
+                { username: 'bob456', profilePic: 'https://example.com/bob456.jpg' },
+                { username: 'charlie789', profilePic: 'https://example.com/charlie789.jpg' }
+            ];
+
+            const referralListContainer = document.getElementById('referralList');
+            referralListContainer.innerHTML = ''; // Clear existing content
+
+            referrals.forEach(referral => {
+                const referralItem = document.createElement('div');
+                referralItem.classList.add('referral-item');
+
+                const image = new Image();
+                image.src = referral.profilePic;
+                image.alt = referral.username;
+                image.onerror = () => image.src = 'https://via.placeholder.com/50'; // Fallback image on error
+                image.classList.add('referral-item-img');
+
+                referralItem.innerHTML = `
+                    <div class="referral-item-content">
+                        <img src="${referral.profilePic}" alt="${referral.username}" class="referral-item-img">
+                        <strong>@${referral.username}</strong>
+                    </div>
+                `;
+
+                referralListContainer.appendChild(referralItem);
+            });
+        }
+
+        function goBack() {
+            window.location.href = 'index.html';
+        }
+
+        loadReferralInfo();
+        loadReferralsList();
+    </script>
+</body>
+</html>
