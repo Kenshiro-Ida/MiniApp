@@ -164,8 +164,8 @@
         </div>
 
         <div class="button-grid">
-            <button class="menu-button" onclick="handleAddress()">🏠 Address</button>
-            <button class="menu-button" onclick="handleButton(2)">📈 Stake Now</button>
+            <button class="menu-button" onclick="showAddressView()">🏠 Address</button>
+            <button class="menu-button" onclick="showStakeView(2)">📈 Stake Now</button>
             <button class="menu-button" onclick="handleButton(3)">👤 My Info</button>
             <button class="menu-button" onclick="handleButton(4)">🔗 My Ref Link</button>
             <button class="menu-button" onclick="handleButton(5)">💰 Balance</button>
@@ -194,158 +194,180 @@
             <button class="back-button" onclick="showMainMenu()">Back to Menu</button>
         </div>
     </div>
+    <!-- Stake View -->
+<div id="stakeView" class="view">
+    <div class="address-container">
+        <div class="header-title">Stake Your USDT</div>
 
-    <script>
-        const webapp = window.Telegram.WebApp;
-        webapp.ready();
-        
-        // Enable closing animations
-        webapp.enableClosingConfirmation();
-        
-        // Store the address from URL parameter
-        let userAddress = '';
-        let userId = '';
+        <div class="wallet-text">
+            Enter the amount you want to stake:
+        </div>
 
-        async function fetchBalances() {
-    try {
-        const apiUrl = `https://brief-presently-ladybug.ngrok-free.app/api/balances/${userId}`;
-        const response = await fetch(apiUrl, {
-            method: 'GET',
-            headers: {
-                'Accept': 'application/json',
-                'Content-Type': 'application/json'
-            },
-            credentials: 'include'
-        });
+        <input type="number" id="stakeAmount" placeholder="Enter amount in USDT" class="wallet-text" style="width: 80%; padding: 10px; font-size: 16px;">
+
+        <button class="copy-button" onclick="stakeUSDT()">Stake Now</button>
+        <br>
+        <button class="back-button" onclick="showMainMenu()">Back to Menu</button>
+    </div>
+</div>
+
+<script>
+    const webapp = window.Telegram.WebApp;
+    webapp.ready();
+    webapp.enableClosingConfirmation();
+
+    let userAddress = '';
+    let userId = '';
+    let balanceCheckInterval;
+
+    // Initialize the app
+    document.addEventListener('DOMContentLoaded', function() {
+        const urlParams = new URLSearchParams(window.location.search);
+        userAddress = urlParams.get('address');
+        userId = urlParams.get('userId');
         
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+        if (userId) {
+            startBalanceChecking();
+        } else {
+            console.error('User ID not found in URL parameters');
         }
-        
-        const data = await response.json();
-        
-        // Update the balance displays
-        document.getElementById('depositBalance').textContent = `${data.deposit_balance.toFixed(2)} USDT`;
-        document.getElementById('stakeBalance').textContent = `${data.stake_balance.toFixed(2)} USDT`;
-        document.getElementById('withdrawBalance').textContent = `${data.withdraw_balance.toFixed(2)} USDT`;
-    } catch (error) {
-        console.error('Error fetching balances:', error);
-        document.getElementById('depositBalance').textContent = 'Error loading';
-        document.getElementById('stakeBalance').textContent = 'Error loading';
-        document.getElementById('withdrawBalance').textContent = 'Error loading';
+    });
+
+    function startBalanceChecking() {
+        fetchBalances();
+        balanceCheckInterval = setInterval(fetchBalances, 10000);
     }
-}
 
-        // Function to get URL parameters
-        function getUrlParameter(name) {
-            const urlParams = new URLSearchParams(window.location.search);
-            return urlParams.get(name);
-        }
-    
-        // Initialize on page load
-        document.addEventListener('DOMContentLoaded', function() {
-            userAddress = getUrlParameter('address');
-            userId = getUrlParameter('userId');
+    async function fetchBalances() {
+        try {
+            const response = await fetch(`https://leostar.live:5001/get_balance?telegram_user_id=${userId}`);
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
             
-            if (userId) {
-                fetchBalances();
-            } else {
-                console.error('User ID not found in URL parameters');
-            }
+            const data = await response.json();
+            document.getElementById('depositBalance').textContent = `${data.Deposit_Balance} USDT`;
+            document.getElementById('stakeBalance').textContent = `${data.Stake_Balance} USDT`;
+            document.getElementById('withdrawBalance').textContent = `${data.Withdraw_Balance} USDT`;
+        } catch (error) {
+            console.error('Error fetching balances:', error);
+        }
+    }
+
+    function showView(viewId) {
+        document.querySelectorAll('.view').forEach(view => {
+            view.classList.remove('active');
         });
-    
-        function showView(viewId) {
-            document.querySelectorAll('.view').forEach(view => {
-                view.classList.remove('active');
-            });
-            document.getElementById(viewId).classList.add('active');
-        }
-    
-        function showMainMenu() {
-            showView('menuView');
-        }
-    
-        function handleAddress() {
-            if (!userAddress) {
-                webapp.showPopup({
-                    title: 'Error',
-                    message: 'Address not available. Please try again later.',
-                    buttons: [{type: 'ok'}]
-                });
-                return;
-            }
+        document.getElementById(viewId).classList.add('active');
+    }
 
-            // Clear existing QR code
-            document.getElementById('qrcode').innerHTML = '';
-            
-            // Display address
-            document.getElementById('wallet-address').textContent = userAddress;
-    
-            // Generate QR code
-            new QRCode(document.getElementById("qrcode"), {
-                text: userAddress,
-                width: 200,
-                height: 200,
-                colorDark: "#000000",
-                colorLight: "#ffffff",
-                correctLevel: QRCode.CorrectLevel.H
-            });
-    
-            showView('addressView');
-        }
-    
-        function handleButton(option) {
-            webapp.showPopup({
-                title: 'Selection Made',
-                message: `You selected Option ${option}`,
-                buttons: [{type: 'ok'}]
-            });
-        }
-    
-        function copyAddress() {
-            const address = document.getElementById('wallet-address').textContent;
-            const hiddenInput = document.getElementById('hidden-copy-input');
-            
-            // Set the value to the hidden input
-            hiddenInput.value = address;
-            
-            // Select the text
-            hiddenInput.select();
-            hiddenInput.setSelectionRange(0, 99999); // For mobile devices
-            
-            try {
-                // Try the new clipboard API first
-                navigator.clipboard.writeText(address)
-                    .then(() => showCopySuccess())
-                    .catch(() => {
-                        // Fallback to document.execCommand
-                        try {
-                            document.execCommand('copy');
-                            showCopySuccess();
-                        } catch (err) {
-                            showCopyError();
-                        }
-                    });
-            } catch (err) {
-                showCopyError();
-            }
-        }
+    function showMainMenu() {
+        showView('menuView');
+    }
 
-        function showCopySuccess() {
-            webapp.showPopup({
-                title: 'Success',
-                message: 'Address copied to clipboard',
-                buttons: [{type: 'ok'}]
-            });
-        }
-
-        function showCopyError() {
+    function showAddressView() {
+        if (!userAddress) {
             webapp.showPopup({
                 title: 'Error',
-                message: 'Failed to copy address. Please try selecting and copying manually.',
+                message: 'Address not available. Please try again later.',
                 buttons: [{type: 'ok'}]
             });
+            return;
         }
-    </script>
+
+        document.getElementById('qrcode').innerHTML = '';
+        document.getElementById('wallet-address').textContent = userAddress;
+
+        new QRCode(document.getElementById("qrcode"), {
+            text: userAddress,
+            width: 200,
+            height: 200,
+            colorDark: "#000000",
+            colorLight: "#ffffff",
+            correctLevel: QRCode.CorrectLevel.H
+        });
+
+        showView('addressView');
+    }
+
+    function showStakeView() {
+        showView('stakeView');
+    }
+
+    function handleButton(option) {
+        webapp.showPopup({
+            title: 'Coming Soon',
+            message: `This feature will be available soon.`,
+            buttons: [{type: 'ok'}]
+        });
+    }
+
+    async function stakeUSDT() {
+        const amount = parseFloat(document.getElementById('stakeAmount').value);
+        if (!amount || amount <= 0) {
+            webapp.showPopup({
+                title: 'Error',
+                message: 'Please enter a valid staking amount.',
+                buttons: [{ type: 'ok' }]
+            });
+            return;
+        }
+
+        try {
+            const response = await fetch('https://leostar.live:5001/api/stake', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    userId: userId,
+                    amount: amount
+                })
+            });
+
+            const data = await response.json();
+            if (data.success) {
+                webapp.showPopup({
+                    title: 'Success',
+                    message: `You have successfully staked ${amount} USDT.`,
+                    buttons: [{ type: 'ok' }]
+                });
+                fetchBalances();
+            } else {
+                throw new Error(data.error || 'Staking failed');
+            }
+        } catch (error) {
+            webapp.showPopup({
+                title: 'Error',
+                message: error.message || 'Failed to stake. Please try again.',
+                buttons: [{ type: 'ok' }]
+            });
+        }
+    }
+
+    function copyAddress() {
+        const address = document.getElementById('wallet-address').textContent;
+        navigator.clipboard.writeText(address)
+            .then(() => {
+                webapp.showPopup({
+                    title: 'Success',
+                    message: 'Address copied to clipboard',
+                    buttons: [{type: 'ok'}]
+                });
+            })
+            .catch(() => {
+                webapp.showPopup({
+                    title: 'Error',
+                    message: 'Failed to copy address. Please try selecting and copying manually.',
+                    buttons: [{type: 'ok'}]
+                });
+            });
+    }
+
+    // Cleanup when the page is closed
+    window.addEventListener('beforeunload', function() {
+        if (balanceCheckInterval) {
+            clearInterval(balanceCheckInterval);
+        }
+    });
+</script>
 </body>
 </html>

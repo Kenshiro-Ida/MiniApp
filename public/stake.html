@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Balance Display</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: #aaeae9;
+            color: var(--tg-theme-text-color, #ffffff);
+            margin: 0;
+            padding: 16px;
+            text-align: center;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            color: #038597;
+        }
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+            margin: 20px 0;
+        }
+        .balance-box {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            border: 1px solid #038597;
+            color: #038597;
+            font-weight: bold;
+            font-size: 16px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .single-box {
+            grid-column: 1 / -1;
+            margin-top: 16px;
+            padding: 15px;
+        }
+        .balance-box span {
+            display: block;
+            margin-top: 8px;
+            font-size: 18px;
+        }
+        .input-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+        .input-field {
+            width: 80%;
+            padding: 12px;
+            border: 2px solid #038597;
+            border-radius: 8px;
+            font-size: 16px;
+            text-align: center;
+            color: #038597;
+            outline: none;
+        }
+        .input-field:focus {
+            border-color: #4285F4;
+        }
+        .stake-button {
+            background-color: #4285F4;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 12px 24px;
+            font-size: 16px;
+            cursor: pointer;
+            width: 80%;
+        }
+        .stake-button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        .error-message {
+            color: #ff4444;
+            font-size: 14px;
+            margin-top: 5px;
+            display: none;
+        }
+        .back-button {
+            background-color: #038597;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 12px 24px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">Your Balances</div>
+        
+        <div class="grid-container">
+            <div class="balance-box">
+                💰 Deposit-Balance
+                <span id="depositBalance">0 USDT</span>
+            </div>
+            
+            <div class="balance-box">
+                📈 Stake-Balance
+                <span id="stakeBalance">0 USDT</span>
+            </div>
+            
+            <div class="balance-box">
+                💸 Withdraw-Balance
+                <span id="withdrawBalance">0 USDT</span>
+            </div>
+            
+            <div class="balance-box">
+                💸 Withdraw-Balance
+                <span id="withdrawBalance2">0 USDT</span>
+            </div>
+
+            <div class="balance-box single-box">
+                <div class="input-container">
+                    <label>💵 Enter Amount (USDT)</label>
+                    <input type="number" 
+                           id="stakeInput" 
+                           class="input-field" 
+                           placeholder="Enter amount (multiple of 10)"
+                           min="10" 
+                           step="10">
+                    <div id="errorMessage" class="error-message">Please enter a multiple of 10</div>
+                    <button id="stakeButton" class="stake-button" onclick="handleStake()">Stake Now</button>
+                </div>
+            </div>
+        </div>
+
+        <button class="back-button" onclick="goBack()">Back to Menu</button>
+    </div>
+
+    <script>
+        const webapp = window.Telegram.WebApp;
+        webapp.ready();
+
+        const input = document.getElementById('stakeInput');
+        const errorMessage = document.getElementById('errorMessage');
+        const stakeButton = document.getElementById('stakeButton');
+
+        input.addEventListener('input', validateInput);
+
+        function validateInput() {
+            const value = parseInt(input.value);
+            const isValid = value > 0 && value % 10 === 0;
+            
+            errorMessage.style.display = isValid || input.value === '' ? 'none' : 'block';
+            stakeButton.disabled = !isValid;
+            
+            return isValid;
+        }
+
+        function handleStake() {
+            if (validateInput()) {
+                const amount = parseInt(input.value);
+                webapp.showPopup({
+                    title: 'Confirm Stake',
+                    message: 'Are you sure you want to stake ${amount} USDT?',
+                    buttons: [
+                        {id: 'confirm', type: 'ok', text: 'Confirm'},
+                        {type: 'cancel'}
+                    ]
+                });
+            }
+        }
+
+        function goBack() {
+            window.location.href = 'index.html';
+        }
+
+        // Function to update balances
+        function updateBalances(data) {
+            document.getElementById('depositBalance').textContent = data.deposit + ' USDT';
+            document.getElementById('stakeBalance').textContent = data.stake + ' USDT';
+            document.getElementById('withdrawBalance').textContent = data.withdraw + ' USDT';
+            document.getElementById('withdrawBalance2').textContent = data.withdraw2 + ' USDT';
+        }
+    </script>
+</body>
+</html>
