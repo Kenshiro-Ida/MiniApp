@@ -3,6 +3,7 @@
 <head>
     <title>Telegram WebApp</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Permissions-Policy" content="clipboard-write=(self)">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
@@ -215,6 +216,84 @@
     }
 
     }
+    #depositsView .container {
+        max-width: 600px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+    
+    #depositsView .header {
+        font-size: 24px;
+        font-weight: bold;
+        margin-bottom: 20px;
+        color: #038597;
+    }
+    
+    #depositsView .balance-box {
+        background: white;
+        padding: 20px;
+        border-radius: 12px;
+        text-align: left;
+        border: 1px solid #038597;
+        color: #038597;
+        font-weight: bold;
+        font-size: 16px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        margin-bottom: 20px;
+    }
+    
+    #depositsView .filter-buttons {
+        display: flex;
+        justify-content: center;
+        margin-bottom: 20px;
+    }
+    
+    #depositsView .filter-buttons button {
+        background-color: #038597;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 12px 24px;
+        font-size: 16px;
+        margin: 0 10px;
+        cursor: pointer;
+    }
+    
+    #depositsView .filter-buttons button:hover {
+        background-color: #026d74;
+    }
+    
+    #depositsView .transaction-list {
+        text-align: left;
+        padding-left: 20px;
+    }
+    
+    #depositsView .transaction-item {
+        background: #0ebdd4;
+        margin: 8px 0;
+        padding: 10px;
+        border-radius: 8px;
+        font-size: 16px;
+        display: flex;
+        justify-content: space-between;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    
+    #depositsView .back-button {
+        background-color: #038597;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 12px 24px;
+        font-size: 16px;
+        cursor: pointer;
+        margin-top: 20px;
+    }
+    
+    #depositsView .back-button:hover {
+        background-color: #026d74;
+    }
+
 
     </style>
 </head>
@@ -351,6 +430,31 @@
     </div>
 </div>
 
+<!-- Deposits View -->
+<div id="depositsView" class="view">
+    <div class="container">
+        <div class="header">Deposits</div>
+        
+        <div class="balance-box">
+            💰 Balance: <span id="balance">Loading...</span>
+        </div>
+
+        <div class="filter-buttons">
+            <button onclick="filterTransactions('debit')">Debit</button>
+            <button onclick="filterTransactions('credit')">Credit</button>
+            <button onclick="filterTransactions('both')">Both</button>
+        </div>
+
+        <div class="header">Transactions</div>
+        <div class="transaction-list" id="transactionList">
+            <!-- Transactions will be loaded here -->
+        </div>
+        
+        <button class="back-button" onclick="showMainMenu()">Back to Menu</button>
+    </div>
+</div>
+
+
 <script>
     const webapp = window.Telegram.WebApp;
     webapp.ready();
@@ -446,6 +550,10 @@
         case 9: // Withdrawals
             showWithdrawalView();
             break;
+        case 10: //Deposits
+            showDepositsView();
+            break;
+
         default:
             webapp.showPopup({
                 title: 'Coming Soon',
@@ -458,16 +566,16 @@
     async function showInfoView() {
     showView('infoView');
     try {
-        const response = await fetch(`https://leostar.live:5001/get_user_info?telegram_user_id=\${userId}`);
+        const response = await fetch(`https://leostar.live:5001/get_user?telegram_id=${userId}`);
         if (!response.ok) throw new Error('Failed to fetch user info');
         const data = await response.json();
         
-        document.getElementById('userName').textContent = data.username || 'N/A';
-        document.getElementById('WalletBalance').textContent = `\${data.wallet_balance || 0} USDT`;
-        document.getElementById('ReferralBy').textContent = data.referred_by || 'None';
-        document.getElementById('MyStaking').textContent = `\${data.staking_amount || 0} USDT`;
-        document.getElementById('MyEarnings').textContent = `\${data.total_earnings || 0} USDT`;
-        document.getElementById('JoiningDate').textContent = new Date(data.joining_date).toLocaleDateString();
+        document.getElementById('userName').textContent = data.Telegram_Username || 'N/A';
+        document.getElementById('WalletBalance').textContent = data.Deposit_Balance || 'N/A';
+        document.getElementById('ReferralBy').textContent = data.Referral_By || 'None';
+        document.getElementById('MyStaking').textContent = data.Stake_Balance;
+        document.getElementById('MyEarnings').textContent = data.Withdrawal_Balance;
+        document.getElementById('JoiningDate').textContent = new Date(data.Joining_Date).toLocaleDateString();
     } catch (error) {
         console.error('Error fetching user info:', error);
         webapp.showPopup({
@@ -481,7 +589,7 @@
 async function showReferralsView() {
     showView('referralsView');
     try {
-        const response = await fetch(`https://leostar.live:5001/get_referrals?telegram_user_id=\${userId}`);
+        const response = await fetch(`https://leostar.live:5001/get_referrals?telegram_id=\${userId}`);
         if (!response.ok) throw new Error('Failed to fetch referrals');
         const data = await response.json();
         
@@ -517,8 +625,8 @@ async function showReferralsView() {
     }
 }
 
-function copyReferralLink() {
-    const referralLink = `https://t.me/your_bot?start=\${userId}`;
+async function copyReferralLink() {
+    const referralLink = `https://t.me/your_bot?start=${userId}`;
     navigator.clipboard.writeText(referralLink)
         .then(() => {
             webapp.showPopup({
@@ -535,6 +643,24 @@ function copyReferralLink() {
             });
         });
 }
+
+function copyAddress() {
+    const walletAddress = document.getElementById('wallet-address').textContent;
+    navigator.clipboard.writeText(walletAddress).then(() => {
+        webapp.showPopup({
+            title: 'Success',
+            message: 'Address copied to clipboard!',
+            buttons: [{type: 'ok'}]
+        });
+    }).catch(() => {
+        webapp.showPopup({
+            title: 'Error',
+            message: 'Failed to copy address. Please try again.',
+            buttons: [{type: 'ok'}]
+        });
+    });
+}
+
 
 async function showWithdrawalView() {
     showView('withdrawalView');
@@ -655,6 +781,96 @@ async function processWithdrawal() {
                 });
             });
     }
+
+    async function showDepositsView() {
+        showView('depositsView');
+        
+        // Show loading state
+        const transactionList = document.getElementById('transactionList');
+        if (transactionList) {
+            transactionList.innerHTML = '<div class="loading">Loading transactions...</div>';
+        }
+
+        try {
+            const response = await fetch(`https://leostar.live:5001/get_deposits?telegram_user_id=${userId}`);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const data = await response.json();
+            
+            // Update balance
+            const balanceElement = document.getElementById('balance');
+            if (balanceElement) {
+                balanceElement.textContent = `$${(data.balance || 0).toFixed(2)}`;
+            }
+
+            // Update transactions
+            if (data.transactions && Array.isArray(data.transactions)) {
+                filterTransactions('both', data.transactions);
+            } else {
+                transactionList.innerHTML = '<div class="no-transactions">No transactions available</div>';
+            }
+
+        } catch (error) {
+            console.error('Error fetching deposit data:', error);
+            if (transactionList) {
+                transactionList.innerHTML = '<div class="error">Failed to load transactions. Please try again.</div>';
+            }
+            webapp.showPopup({
+                title: 'Error',
+                message: 'Failed to load deposit information. Please try again later.',
+                buttons: [{ type: 'ok' }]
+            });
+        }
+    }
+
+    function filterTransactions(type, transactions) {
+        if (!Array.isArray(transactions)) {
+            console.error('Invalid transactions data');
+            return;
+        }
+
+        let filteredTransactions;
+        switch (type) {
+            case 'debit':
+                filteredTransactions = transactions.filter(tx => tx.type === 'debit');
+                break;
+            case 'credit':
+                filteredTransactions = transactions.filter(tx => tx.type === 'credit');
+                break;
+            default:
+                filteredTransactions = transactions;
+        }
+
+        displayTransactions(filteredTransactions);
+    }
+    function displayTransactions(transactions) {
+        const transactionList = document.getElementById('transactionList');
+        if (!transactionList) return;
+
+        if (!Array.isArray(transactions) || transactions.length === 0) {
+            transactionList.innerHTML = '<div class="no-transactions">No transactions available</div>';
+            return;
+        }
+
+        transactionList.innerHTML = transactions.map(transaction => `
+            <div class="transaction-item ${transaction.type}">
+                <div class="transaction-type">
+                    ${transaction.type === 'debit' ? 'Debit' : 'Credit'}
+                </div>
+                <div class="transaction-amount">
+                    ${transaction.type === 'debit' ? '-' : '+'} $${parseFloat(transaction.amount).toFixed(2)}
+                </div>
+                <div class="transaction-date">
+                    ${new Date(transaction.date).toLocaleString()}
+                </div>
+            </div>
+        `).join('');
+    }
+
+
 
     // Cleanup when the page is closed
     window.addEventListener('beforeunload', function() {
