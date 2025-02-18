@@ -159,21 +159,27 @@ function startTransactionPolling(telegramUserId, userAddress) {
 
 async function processDeposit(conn, telegramUserId, tx, blockNumber) {
     const txHash = tx.hash;
-    const amount = web3.utils.fromWei(tx.value, 'ether');
-    
+    const amount = web3.utils.fromWei(tx.value, 'ether'); // Convert to ETH
+
+    // Ignore USDT and other tokens (You can add checks for other tokens if needed)
+    if (tx.input !== '0x') { // If the transaction is a contract call, likely to be USDT or token transfer
+        console.log(`Ignoring non-ETH transaction: ${txHash}`);
+        return;
+    }
+
     console.log(`Processing Deposit: ${txHash} - Amount: ${amount} ETH for user ${telegramUserId}`);
-    
+
     // Check if transaction already exists
     const [existingTx] = await conn.execute(
         'SELECT * FROM Deposit_Transactions WHERE Transaction_ID_Blockchain = ?',
         [txHash]
     );
-    
+
     if (existingTx.length > 0) {
         console.log(`Transaction ${txHash} already processed, skipping`);
         return;
     }
-    
+
     await conn.beginTransaction();
     try {
         // Get user's current balance
@@ -181,24 +187,24 @@ async function processDeposit(conn, telegramUserId, tx, blockNumber) {
             'SELECT Deposit_Balance FROM Users WHERE Telegram_User_ID = ?',
             [telegramUserId]
         );
-        
+
         const newBalance = parseFloat(currentBalance[0].Deposit_Balance) + parseFloat(amount);
-        
+
         // Insert new deposit transaction
         await conn.execute(
             'INSERT INTO Deposit_Transactions (Telegram_User_ID, Deposit_Date, Transaction_ID_Blockchain, Cr_Amount, Balance, Transation_Type, block_number) VALUES (?, NOW(), ?, ?, ?, "Deposit", ?)',
             [telegramUserId, txHash, amount, newBalance, blockNumber]
         );
-        
+
         // Update user balance
         await conn.execute(
             'UPDATE Users SET Deposit_Balance = ? WHERE Telegram_User_ID = ?',
             [newBalance, telegramUserId]
         );
-        
+
         await conn.commit();
         console.log(`Transaction recorded: ${txHash}`);
-        
+
         // Send notification to the user
         try {
             await bot.telegram.sendMessage(telegramUserId, 
