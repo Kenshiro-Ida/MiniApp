@@ -11,17 +11,44 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Change from WebSocket to HTTP provider
-const web3 = new Web3('https://sepolia.infura.io/v3/bfa7d79d684e465e8cf63b10f095c450');
+// Change to BSC Testnet
+const web3 = new Web3('https://data-seed-prebsc-1-s1.binance.org:8545/');
 
 // Add connection error handling
 web3.eth.net.isListening()
-    .then(() => console.log('Web3 is connected'))
+    .then(() => console.log('Web3 is connected to BSC Testnet'))
     .catch(err => console.error('Web3 connection error:', err));
 
 const WEBAPP_URL = 'https://leostar.live:3000';
-const ETHERSCAN_API_KEY = 'T721W1PI732GNJB2CUNT8BZUDK31FKU5QD';
-const ETHERSCAN_API = 'https://api-sepolia.etherscan.io/api';
+const BSCSCAN_API_KEY = 'QDEANERDTIV9KAWQ17A5VEWIPXUZXV73PK'; // Replace with your BscScan API key
+const BSCSCAN_API = 'https://api-testnet.bscscan.com/api';
+const USDT_CONTRACT_ADDRESS = '0x7ef95a0FEE0Dd31b22626fA2e10Ee6A223F8a684'; // BSC Testnet USDT
+
+// USDT Token ABI (minimal for transfer events)
+const USDT_ABI = [
+    {
+        "anonymous": false,
+        "inputs": [
+            {
+                "indexed": true,
+                "name": "from",
+                "type": "address"
+            },
+            {
+                "indexed": true,
+                "name": "to",
+                "type": "address"
+            },
+            {
+                "indexed": false,
+                "name": "value",
+                "type": "uint256"
+            }
+        ],
+        "name": "Transfer",
+        "type": "event"
+    }
+];
 
 const dbConfig = {
     host: "localhost",
@@ -32,17 +59,19 @@ const dbConfig = {
 
 const pool = mysql.createPool(dbConfig);
 
-async function getTransactionsFromEtherscan(address, startBlock = 0) {
+async function getTransactionsFromBscScan(address, startBlock = 0) {
     try {
-        const response = await axios.get(ETHERSCAN_API, {
+        // Get BEP-20 token transfers instead of normal transactions
+        const response = await axios.get(BSCSCAN_API, {
             params: {
                 module: 'account',
-                action: 'txlist',
+                action: 'tokentx',
+                contractaddress: USDT_CONTRACT_ADDRESS,
                 address: address,
                 startblock: startBlock,
                 endblock: '99999999',
                 sort: 'asc',
-                apikey: ETHERSCAN_API_KEY
+                apikey: BSCSCAN_API_KEY
             }
         });
 
@@ -53,16 +82,17 @@ async function getTransactionsFromEtherscan(address, startBlock = 0) {
                 timeStamp: tx.timeStamp,
                 from: tx.from,
                 to: tx.to,
-                value: parseFloat(tx.value) / 1e18,
-                isError: tx.isError === '0',
-                txreceipt_status: tx.txreceipt_status
+                value: parseFloat(tx.value) / 1e18, // USDT has 18 decimals
+                contractAddress: tx.contractAddress,
+                tokenName: tx.tokenName,
+                tokenSymbol: tx.tokenSymbol
             }));
         } else {
-            console.log(`No transactions found for address: ${address}`);
+            console.log(`No USDT transactions found for address: ${address}`);
             return [];
         }
     } catch (error) {
-        console.error('Error fetching transactions from Etherscan:', error);
+        console.error('Error fetching transactions from BscScan:', error);
         return [];
     }
 }
@@ -157,11 +187,12 @@ async function processDeposits(telegramUserId, userAddress) {
             startBlock = blockInfo[0].last_block || 0;
         }
 
-        const transactions = await getTransactionsFromEtherscan(userAddress, startBlock);
+        const transactions = await getTransactionsFromBscScan(userAddress, startBlock);
         if (transactions.length === 0) return;
         
         for (const tx of transactions) {
-            if (tx.isError && tx.txreceipt_status === '1') {
+            // Only process transactions to the USDT contract
+            if (tx.contractAddress.toLowerCase() === USDT_CONTRACT_ADDRESS.toLowerCase()) {
                 const [existingTx] = await conn.execute(
                     'SELECT 1 FROM Deposit_Transactions WHERE Transaction_ID_Blockchain = ? LIMIT 1',
                     [tx.hash]
@@ -172,7 +203,7 @@ async function processDeposits(telegramUserId, userAddress) {
                         'INSERT INTO Deposit_Transactions (Telegram_User_ID, Deposit_Date, Transaction_ID_Blockchain, Cr_Amount, Balance, Transaction_Type, block_number) VALUES (?, NOW(), ?, ?, ?, "Deposit", ?)',
                         [telegramUserId, tx.hash, tx.value, tx.value, tx.blockNumber]
                     );
-                    console.log(`Deposit recorded: ${tx.hash} for user ${telegramUserId}`);
+                    console.log(`USDT deposit recorded: ${tx.hash} for user ${telegramUserId}`);
                 } else {
                     console.log(`Transaction ${tx.hash} already exists, skipping.`);
                 }

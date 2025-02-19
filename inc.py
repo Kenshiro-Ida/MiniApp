@@ -1,7 +1,10 @@
-import os
 import mysql.connector
 from web3 import Web3
 from eth_account import Account
+
+# BSC Testnet RPC URL
+BSC_TESTNET_RPC = "https://data-seed-prebsc-1-s1.binance.org:8545"
+web3 = Web3(Web3.HTTPProvider(BSC_TESTNET_RPC))
 
 # Database connection settings
 DB_CONFIG = {
@@ -14,12 +17,12 @@ DB_CONFIG = {
 # Function to create a wallet
 def create_wallet():
     acct = Account.create()
-    return acct.address, acct.key.hex()
+    return acct.address, acct.key.hex()  # Return address and private key in hex format
 
 # Function to insert wallets into the database
 def insert_wallets(n):
     try:
-        connection = mysql.connector.connect(**DB_CONFIG, auth_plugin='mysql_native_password')
+        connection = mysql.connector.connect(**DB_CONFIG)
         cursor = connection.cursor()
         
         for _ in range(n):

@@ -317,11 +317,6 @@ def get_referrals():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-@app.route('/record_transfers', methods=['POST'])
-def record_transfers():
-    data = request.json  # Get JSON data from request
-    print(data)  # Print the received data
-    return '', 204  # Return empty response with 204 No Content status
 
 if __name__ == "__main__":
     app.run(ssl_context=("leostar.live.crt", "private.key"), host="0.0.0.0", debug=True, port=5001)
