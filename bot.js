@@ -3,6 +3,7 @@ const { Telegraf } = require('telegraf');
 const mysql = require('mysql2/promise');
 const express = require('express');
 const cors = require('cors');
+const axios = require('axios');
 const bot = new Telegraf(process.env.BOT_TOKEN);
 const Web3 = require('web3');
 
@@ -19,6 +20,8 @@ web3.eth.net.isListening()
     .catch(err => console.error('Web3 connection error:', err));
 
 const WEBAPP_URL = 'https://leostar.live:3000';
+const ETHERSCAN_API_KEY = 'T721W1PI732GNJB2CUNT8BZUDK31FKU5QD';
+const ETHERSCAN_API = 'https://api-sepolia.etherscan.io/api';
 
 const dbConfig = {
     host: "localhost",
@@ -28,6 +31,41 @@ const dbConfig = {
 };
 
 const pool = mysql.createPool(dbConfig);
+
+async function getTransactionsFromEtherscan(address, startBlock = 0) {
+    try {
+        const response = await axios.get(ETHERSCAN_API, {
+            params: {
+                module: 'account',
+                action: 'txlist',
+                address: address,
+                startblock: startBlock,
+                endblock: '99999999',
+                sort: 'asc',
+                apikey: ETHERSCAN_API_KEY
+            }
+        });
+
+        if (response.data.status === '1' && response.data.result.length > 0) {
+            return response.data.result.map(tx => ({
+                hash: tx.hash,
+                blockNumber: parseInt(tx.blockNumber),
+                timeStamp: tx.timeStamp,
+                from: tx.from,
+                to: tx.to,
+                value: parseFloat(tx.value) / 1e18,
+                isError: tx.isError === '0',
+                txreceipt_status: tx.txreceipt_status
+            }));
+        } else {
+            console.log(`No transactions found for address: ${address}`);
+            return [];
+        }
+    } catch (error) {
+        console.error('Error fetching transactions from Etherscan:', error);
+        return [];
+    }
+}
 
 async function processUser(telegramUserId, referral_id = null) {
     const conn = await pool.getConnection();
@@ -75,9 +113,6 @@ async function processUser(telegramUserId, referral_id = null) {
         console.log(userAddress)
         await conn.commit();
 
-        // Set up polling for transactions instead of WebSocket subscription
-        startTransactionPolling(telegramUserId, userAddress);
-
         return userAddress;
     } catch (error) {
         await conn.rollback();
@@ -87,143 +122,70 @@ async function processUser(telegramUserId, referral_id = null) {
     }
 }
 
-// Poll for new transactions at regular intervals
-function startTransactionPolling(telegramUserId, userAddress) {
-    if (!global.pollingIntervals) {
-        global.pollingIntervals = new Map();
-    }
-
-    // Clear any existing interval for this user
-    if (global.pollingIntervals.has(telegramUserId)) {
-        clearInterval(global.pollingIntervals.get(telegramUserId));
-    }
-
-    let lastProcessedBlock = 0;
-    
-    const pollInterval = setInterval(async () => {
-        try {
-            const conn = await pool.getConnection();
-            
-            try {
-                // Get the last processed block for this user
-                const [lastTx] = await conn.execute(
-                    'SELECT MAX(Cr_amount) as last_block FROM Deposit_Transactions WHERE Telegram_User_ID = ?',
-                    [telegramUserId]
-                );
-                
-                if (lastTx[0].last_block) {
-                    lastProcessedBlock = lastTx[0].last_block;
-                } else {
-                    // If no transactions yet, start from current block - 100
-                    const currentBlock = await web3.eth.getBlockNumber();
-                    lastProcessedBlock = currentBlock - 100;
-                }
-                
-                // Get latest block number
-                const latestBlock = await web3.eth.getBlockNumber();
-                
-                // Process blocks in batches to avoid overloading
-                const batchSize = 10;
-                const startBlock = lastProcessedBlock + 1;
-                const endBlock = Math.min(latestBlock, startBlock + batchSize - 1);
-                
-                console.log(`Checking blocks ${startBlock} to ${endBlock} for address ${userAddress}`);
-                
-                // Process each block
-                for (let blockNumber = startBlock; blockNumber <= endBlock; blockNumber++) {
-                    const block = await web3.eth.getBlock(blockNumber, true);
-                    
-                    if (block && block.transactions) {
-                        for (const tx of block.transactions) {
-                            if (tx.to && tx.to.toLowerCase() === userAddress.toLowerCase()) {
-                                await processDeposit(conn, telegramUserId, tx, blockNumber);
-                            }
-                        }
-                    }
-                    
-                    // Update last processed block
-                    lastProcessedBlock = blockNumber;
-                }
-            } catch (error) {
-                console.error('Error during transaction polling:', error);
-            } finally {
-                conn.release();
-            }
-        } catch (error) {
-            console.error('Connection error during polling:', error);
-        }
-    }, 30000); // Check every 30 seconds
-    
-    global.pollingIntervals.set(telegramUserId, pollInterval);
-}
-
-async function processDeposit(conn, telegramUserId, tx, blockNumber) {
-    const txHash = tx.hash;
-    const amount = web3.utils.fromWei(tx.value, 'ether'); // Convert to ETH
-
-    // Ignore USDT and other tokens (You can add checks for other tokens if needed)
-    if (tx.input !== '0x') { // If the transaction is a contract call, likely to be USDT or token transfer
-        console.log(`Ignoring non-ETH transaction: ${txHash}`);
-        return;
-    }
-
-    console.log(`Processing Deposit: ${txHash} - Amount: ${amount} ETH for user ${telegramUserId}`);
-
-    // Check if transaction already exists
-    const [existingTx] = await conn.execute(
-        'SELECT * FROM Deposit_Transactions WHERE Transaction_ID_Blockchain = ?',
-        [txHash]
-    );
-
-    if (existingTx.length > 0) {
-        console.log(`Transaction ${txHash} already processed, skipping`);
-        return;
-    }
-
-    await conn.beginTransaction();
+async function monitorDeposits() {
+    const conn = await pool.getConnection();
     try {
-        // Get user's current balance
-        const [currentBalance] = await conn.execute(
-            'SELECT Deposit_Balance FROM Users WHERE Telegram_User_ID = ?',
-            [telegramUserId]
-        );
-
-        const newBalance = parseFloat(currentBalance[0].Deposit_Balance) + parseFloat(amount);
-
-        // Insert new deposit transaction
-        await conn.execute(
-            'INSERT INTO Deposit_Transactions (Telegram_User_ID, Deposit_Date, Transaction_ID_Blockchain, Cr_Amount, Balance, Transation_Type, block_number) VALUES (?, NOW(), ?, ?, ?, "Deposit", ?)',
-            [telegramUserId, txHash, amount, newBalance, blockNumber]
-        );
-
-        // Update user balance
-        await conn.execute(
-            'UPDATE Users SET Deposit_Balance = ? WHERE Telegram_User_ID = ?',
-            [newBalance, telegramUserId]
-        );
-
-        await conn.commit();
-        console.log(`Transaction recorded: ${txHash}`);
-
-        // Send notification to the user
-        try {
-            await bot.telegram.sendMessage(telegramUserId, 
-                `🎉 Deposit Received!\n\n` +
-                `Amount: ${amount} ETH\n` +
-                `Transaction: ${txHash}\n\n` +
-                `Your new balance is ${newBalance} USDT`
-            );
-        } catch (notifyError) {
-            console.error('Failed to send notification:', notifyError);
+        const [users] = await conn.execute('SELECT Telegram_User_ID, Deposit_Address_USDT FROM Users');
+        for (const user of users) {
+            await processDeposits(user.Telegram_User_ID, user.Deposit_Address_USDT);
         }
     } catch (error) {
-        await conn.rollback();
-        console.error('Transaction processing failed:', error);
+        console.error('Error monitoring deposits:', error);
+    } finally {
+        conn.release();
     }
 }
 
-// Rest of your code...
+setInterval(monitorDeposits, 120000); // Check deposits every 2 minutes
 
+async function processDeposits(telegramUserId, userAddress) {
+    const conn = await pool.getConnection();
+    try {
+        const [lastTx] = await conn.execute(
+            'SELECT Transaction_ID_Blockchain FROM Deposit_Transactions WHERE Telegram_User_ID = ? ORDER BY Deposit_Date DESC LIMIT 1',
+            [telegramUserId]
+        );
+        
+        let lastHash = lastTx.length > 0 ? lastTx[0].Transaction_ID_Blockchain : null;
+        let startBlock = 0;
+
+        if (lastHash) {
+            const [blockInfo] = await conn.execute(
+                'SELECT MAX(block_number) as last_block FROM Deposit_Transactions WHERE Telegram_User_ID = ?',
+                [telegramUserId]
+            );
+            startBlock = blockInfo[0].last_block || 0;
+        }
+
+        const transactions = await getTransactionsFromEtherscan(userAddress, startBlock);
+        if (transactions.length === 0) return;
+        
+        for (const tx of transactions) {
+            if (tx.isError && tx.txreceipt_status === '1') {
+                const [existingTx] = await conn.execute(
+                    'SELECT 1 FROM Deposit_Transactions WHERE Transaction_ID_Blockchain = ? LIMIT 1',
+                    [tx.hash]
+                );
+                
+                if (existingTx.length === 0) {
+                    await conn.execute(
+                        'INSERT INTO Deposit_Transactions (Telegram_User_ID, Deposit_Date, Transaction_ID_Blockchain, Cr_Amount, Balance, Transaction_Type, block_number) VALUES (?, NOW(), ?, ?, ?, "Deposit", ?)',
+                        [telegramUserId, tx.hash, tx.value, tx.value, tx.blockNumber]
+                    );
+                    console.log(`Deposit recorded: ${tx.hash} for user ${telegramUserId}`);
+                } else {
+                    console.log(`Transaction ${tx.hash} already exists, skipping.`);
+                }
+            }
+        }
+    } catch (error) {
+        console.error('Error processing deposits:', error);
+    } finally {
+        conn.release();
+    }
+}
+
+// Bot commands
 bot.command('start', async (ctx) => {
     try {
         const startPayload = ctx.payload;
@@ -232,18 +194,16 @@ bot.command('start', async (ctx) => {
         if (startPayload) {
             const address = await processUser(ctx.from.id.toString(), startPayload);
             console.log('User came from link with payload:', startPayload);
-            // You can add more logic to process the payload if needed
             ctx.reply('Welcome! Open the menu:', {
-            reply_markup: {
-                inline_keyboard: [[
-                    { text: 'Open Menu', web_app: { url: `${WEBAPP_URL}?address=${encodeURIComponent(address)}&userId=${ctx.from.id}&ref_id=${startPayload}` } }
-                ]],
-            }
-        });
-        }
-        else {
+                reply_markup: {
+                    inline_keyboard: [[
+                        { text: 'Open Menu', web_app: { url: `${WEBAPP_URL}?address=${encodeURIComponent(address)}&userId=${ctx.from.id}&ref_id=${startPayload}` } }
+                    ]],
+                }
+            });
+        } else {
             const address = await processUser(ctx.from.id.toString());
-            console.log('User did not came from link with payload:', startPayload);
+            console.log('User did not come from link with payload:', startPayload);
             ctx.reply('Welcome! Open the menu:', {
                 reply_markup: {
                     inline_keyboard: [[
@@ -268,18 +228,17 @@ bot.launch();
 
 // Handle graceful shutdown
 process.once('SIGINT', () => {
-    // Clear all intervals
-    if (global.pollingIntervals) {
-        for (const interval of global.pollingIntervals.values()) {
+    if (global.monitoringIntervals) {
+        for (const interval of global.monitoringIntervals.values()) {
             clearInterval(interval);
         }
     }
     bot.stop('SIGINT');
 });
+
 process.once('SIGTERM', () => {
-    // Clear all intervals
-    if (global.pollingIntervals) {
-        for (const interval of global.pollingIntervals.values()) {
+    if (global.monitoringIntervals) {
+        for (const interval of global.monitoringIntervals.values()) {
             clearInterval(interval);
         }
     }
