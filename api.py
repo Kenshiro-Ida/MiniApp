@@ -170,21 +170,14 @@ def get_deposits():
         # First get user balance
         cursor.execute("SELECT Deposit_Balance FROM Users WHERE Telegram_User_ID = %s", (telegram_user_id,))
         user = cursor.fetchone()
-        
+        print(user)
+        print("Balance = ", float(user["Deposit_Balance"]))
         if not user:
             return jsonify({"error": "User not found"}), 404
         
         # Then get transactions
         query = """
-        SELECT 
-            TrID,
-            Telegram_User_ID,
-            Deposit_Date,
-            Transaction_ID_Blockchain,
-            Dr_Amount,
-            Cr_Amount,
-            Balance,
-            Transation_Type
+        SELECT *
         FROM 
             Deposit_Transactions
         WHERE
