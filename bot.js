@@ -97,7 +97,7 @@ async function getTransactionsFromBscScan(address, startBlock = 0) {
     }
 }
 
-async function processUser(telegramUserId, referral_id = null) {
+async function processUser(telegramUserId,username, referral_id = null) {
     const conn = await pool.getConnection();
     try {
         await conn.beginTransaction();
@@ -131,8 +131,8 @@ async function processUser(telegramUserId, referral_id = null) {
 
             // Create new user with initial balances set to 0
             await conn.execute(
-                'INSERT INTO Users (Telegram_User_ID, Deposit_Address_USDT, Deposit_Balance, Stake_Balance, Withdrawal_Balance, Ref_ID) VALUES (?, ?, 0, 0, 0, ?)',
-                [telegramUserId, wallet.Wallet_Address, referral_id]
+                'INSERT INTO Users (Telegram_User_ID,Username, Deposit_Address_USDT, Deposit_Balance, Stake_Balance, Withdrawal_Balance, Ref_ID) VALUES (?,?, ?, 0, 0, 0, ?)',
+                [telegramUserId,username, wallet.Wallet_Address, referral_id]
             );
 
             userAddress = wallet.Wallet_Address;
@@ -199,11 +199,28 @@ async function processDeposits(telegramUserId, userAddress) {
                 );
                 
                 if (existingTx.length === 0) {
+                    const [latestBalanceResult] = await conn.execute(
+                        'SELECT Balance FROM Deposit_Transactions WHERE Telegram_User_ID = ? ORDER BY Deposit_Date DESC LIMIT 1',
+                        [telegramUserId]
+                    );
+                
+                    let currentBalance = latestBalanceResult.length > 0 && latestBalanceResult[0].Balance !== null
+                        ? parseFloat(latestBalanceResult[0].Balance)
+                        : 0;
+                
+                    let newBalance = currentBalance + parseFloat(tx.value);
+                
                     await conn.execute(
                         'INSERT INTO Deposit_Transactions (Telegram_User_ID, Deposit_Date, Transaction_ID_Blockchain, Cr_Amount, Balance, Transaction_Type, block_number) VALUES (?, NOW(), ?, ?, ?, "Deposit", ?)',
-                        [telegramUserId, tx.hash, tx.value, tx.value, tx.blockNumber]
+                        [telegramUserId, tx.hash, tx.value, newBalance, tx.blockNumber]
                     );
-                    console.log(`USDT deposit recorded: ${tx.hash} for user ${telegramUserId}`);
+                
+                    await conn.execute(
+                        'UPDATE Users SET Deposit_Balance = ? WHERE Telegram_User_ID = ?',
+                        [newBalance, telegramUserId]
+                    );
+                
+                    console.log(`Deposit recorded: ${tx.hash} for user ${telegramUserId}, New Balance: ${newBalance}`);
                 } else {
                     console.log(`Transaction ${tx.hash} already exists, skipping.`);
                 }
@@ -221,9 +238,10 @@ bot.command('start', async (ctx) => {
     try {
         const startPayload = ctx.payload;
         console.log(ctx);
-        console.log(ctx.payload)
+        console.log(ctx.from)
+        
         if (startPayload) {
-            const address = await processUser(ctx.from.id.toString(), startPayload);
+            const address = await processUser(ctx.from.id.toString(), startPayload, ctx.from.username);
             console.log('User came from link with payload:', startPayload);
             ctx.reply('Welcome! Open the menu:', {
                 reply_markup: {

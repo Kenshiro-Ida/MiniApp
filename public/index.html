@@ -27,13 +27,40 @@
             margin-bottom: 10px;
             color: #038597
         }
-        .header-image {
+        /* .header-image {
             width: 100%;
             max-width: 100px;
             border-radius: 12px;
             margin-bottom: 16px;
             margin-left: 70%;
+        } */
+
+        .balance-info {
+            display: grid;
+            grid-template-columns: 1fr; 
+            gap: 10px;
+            max-width: 600px; 
+            margin: 20px auto;
+            padding: 10px;
+            margin-right: 20px; 
         }
+
+        .balance-info div {
+            background-color: #f1f1f1;
+            padding: 12px; 
+            border-radius: 8px;
+            font-weight: bold;
+            color: #038597;
+            border: 1px solid #038597;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            width: 100%; 
+            min-width: 200px; 
+            word-wrap: break-word; 
+            overflow-wrap: break-word; 
+            text-align: center; 
+            font-size: 14px; 
+        }
+
         .button-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
@@ -112,37 +139,7 @@
             top: -9999px;
             opacity: 0;
         }
-        .balance-info {
-        font-size: 10px;
-        color: #038597;
-        font-weight: bold;
-        position: absolute;
-        top: 22%;
-        left: 31%;
-        transform: translate(-50%, -50%);
-        z-index: 10;
-        padding: 15px;
-        border-radius: 8px;
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: 2px;
-        border-radius: 5px;
-    }
-
-    
-    .balance-info div {
-        background-color: #f1f1f1;
-        padding: 8px;
-        border-radius: 6px;
-        text-align: center;
-        font-weight: bold;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-        user-select: none;
-        pointer-events: none;
-        cursor: default;
-        border: 1px solid #038597;
-        min-width: 70px;
-    
+        
     .info-box {
         background: white;
         padding: 20px;
@@ -215,7 +212,7 @@
         text-align: left;
     }
 
-    }
+    
     #depositsView .container {
         max-width: 600px;
         margin: 0 auto;
@@ -295,6 +292,102 @@
     }
 
 
+    .view {
+    display: none;
+    width: 100%;
+    max-width: 600px;
+    margin: 20px auto;
+    padding: 20px;
+    background: #f9f9f9;
+    border-radius: 12px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+    .container {
+    text-align: center;
+}
+
+/* Header */
+    .header {
+    font-size: 24px;
+    font-weight: bold;
+    margin-bottom: 15px;
+    color: #333;
+}
+
+
+    .balance-box {
+    background: #ffdd57;
+    color: #333;
+    font-size: 18px;
+    font-weight: bold;
+    padding: 10px 15px;
+    border-radius: 8px;
+    display: inline-block;
+    margin-bottom: 15px;
+}
+
+    table {
+    width: 100%;
+    border-collapse: collapse;
+    background: #0bc2c2;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+    thead {
+    background: #007bff;
+    color: white;
+}
+
+    th, td {
+    padding: 12px;
+    text-align: center;
+    border-bottom: 1px solid #ddd;
+}
+
+    tr:hover {
+    background: rgba(0, 123, 255, 0.1);
+}
+
+    .back-button {
+    margin-top: 15px;
+    padding: 10px 20px;
+    font-size: 16px;
+    font-weight: bold;
+    color: white;
+    background: #007bff;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: 0.3s ease-in-out;
+}
+
+    .back-button:hover {
+    background: #0056b3;
+}
+
+@media (max-width: 600px) {
+    .view {
+        padding: 15px;
+    }
+
+    th, td {
+        padding: 8px;
+        font-size: 14px;
+    }
+
+    .balance-box {
+        font-size: 16px;
+    }
+
+    .back-button {
+        font-size: 14px;
+        padding: 8px 15px;
+    }
+}
+
     </style>
 </head>
 <body>
@@ -305,13 +398,13 @@
     <div id="menuView" class="view active">
         <div class="overlay">
             <h1 class="header-title">Pocket Money</h1>
-            <img src="WhatsApp Image 2025-02-15 at 16.40.29.jpeg" alt="Header Image" class="header-image">
+            <!-- <img src="WhatsApp Image 2025-02-15 at 16.40.29.jpeg" alt="Header Image" class="header-image"> -->
             
             <div class="balance-info">
                 <div>💰 Deposit-Balance:<span id="depositBalance">0 USDT</span></div>
                 <div>📈 Stake-Balance:<span id="stakeBalance">0 USDT</span></div>
                 <div>💸 Withdraw-Balance:<span id="withdrawBalance">0 USDT</span></div>
-                <div>💸 Withdraw-Balance:<span id="withdrawBalance">0 USDT</span></div>
+                <!-- <div>💸 Withdraw-Balance:<span id="withdrawBalance">0 USDT</span></div> -->
             </div>
         </div>
 
@@ -430,7 +523,6 @@
     </div>
 </div>
 
-<!-- Deposits View -->
 <div id="depositsView" class="view">
     <div class="container">
         <div class="header">Deposits</div>
@@ -440,15 +532,43 @@
         </div>
 
         <div class="filter-buttons">
-            <button onclick="filterTransactions('debit')">Debit</button>
-            <button onclick="filterTransactions('credit')">Credit</button>
-            <button onclick="filterTransactions('both')">Both</button>
+            <button onclick="filterTransactions('debit')" id="debitButton">Debit</button>
+            <button onclick="filterTransactions('credit')" id="creditButton">Credit</button>
+            <button onclick="filterTransactions('both')" id="bothButton" class="active">Both</button>
         </div>
 
         <div class="header">Transactions</div>
         <div class="transaction-list" id="transactionList">
             <!-- Transactions will be loaded here -->
         </div>
+        
+        <button class="back-button" onclick="showMainMenu()">Back to Menu</button>
+    </div>
+</div>
+
+<!-- Income View -->
+<div id="incomeView" class="view">
+    <div class="container">
+        <div class="header">Income</div>
+
+        <div class="balance-box">
+            💰 Total Income: <span id="totalIncome">Loading...</span>
+        </div>
+
+        <div class="header">Income Transactions</div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Amount</th>
+                    <th>Source</th>
+                    <th>Type</th>
+                </tr>
+            </thead>
+            <tbody id="incomeList">
+                <!-- Income transactions will be dynamically inserted here -->
+            </tbody>
+        </table>
         
         <button class="back-button" onclick="showMainMenu()">Back to Menu</button>
     </div>
@@ -561,6 +681,9 @@
             break;
         case 10: //Deposits
             showDepositsView();
+            break;
+        case 6: //Income
+            showIncomeView();
             break;
 
         default:
@@ -791,102 +914,169 @@ async function processWithdrawal() {
             });
     }
 
-    async function showDepositsView() {
-        showView('depositsView');
-        
-        // Show loading state
-        const transactionList = document.getElementById('transactionList');
-        if (transactionList) {
-            transactionList.innerHTML = '<div class="loading">Loading transactions...</div>';
+    let currentTransactions = [];
+        let currentFilter = 'both';
+
+        async function showDepositsView() {
+            showView('depositsView');
+            await fetchAndDisplayTransactions();
         }
 
-        try {
-            const response = await fetch(`https://leostar.live:5001/get_deposits?telegram_user_id=${userId}`);
-            
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
+        async function fetchAndDisplayTransactions() {
+            const transactionList = document.getElementById('transactionList');
+            transactionList.innerHTML = '<div class="loading">Loading transactions...</div>';
 
-            const data = await response.json();
-            
-            // Update balance
-            const balanceElement = document.getElementById('balance');
-            if (balanceElement) {
+            try {
+                const response = await fetch(`https://leostar.live:5001/get_deposits?telegram_user_id=${userId}`);
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                currentTransactions = data.transactions || [];
+
+                // Update balance
+                const balanceElement = document.getElementById('balance');
                 balanceElement.textContent = `$${(data.balance || 0).toFixed(2)}`;
-            }
 
-            // Update transactions
-            if (data.transactions && Array.isArray(data.transactions)) {
-                filterTransactions('both', data.transactions);
-            } else {
-                transactionList.innerHTML = '<div class="no-transactions">No transactions available</div>';
-            }
+                filterTransactions(currentFilter);
 
-        } catch (error) {
-            console.error('Error fetching deposit data:', error);
-            if (transactionList) {
+            } catch (error) {
+                console.error('Error fetching deposit data:', error);
                 transactionList.innerHTML = '<div class="error">Failed to load transactions. Please try again.</div>';
             }
-            webapp.showPopup({
-                title: 'Error',
-                message: 'Failed to load deposit information. Please try again later.',
-                buttons: [{ type: 'ok' }]
+        }
+
+        function filterTransactions(type) {
+            // Update active button
+            document.getElementById('debitButton').classList.toggle('active', type === 'debit');
+            document.getElementById('creditButton').classList.toggle('active', type === 'credit');
+            document.getElementById('bothButton').classList.toggle('active', type === 'both');
+
+            currentFilter = type;
+            
+            let filteredTransactions;
+            switch (type) {
+                case 'debit':
+                    filteredTransactions = currentTransactions.filter(tx => 
+                        tx.Dr_Amount && parseFloat(tx.Dr_Amount) > 0
+                    );
+                    break;
+                case 'credit':
+                    filteredTransactions = currentTransactions.filter(tx => 
+                        tx.Cr_Amount && parseFloat(tx.Cr_Amount) > 0
+                    );
+                    break;
+                default:
+                    filteredTransactions = currentTransactions;
+            }
+
+            displayTransactions(filteredTransactions);
+        }
+
+        function displayTransactions(transactions) {
+            const transactionList = document.getElementById('transactionList');
+            
+            if (!Array.isArray(transactions) || transactions.length === 0) {
+                transactionList.innerHTML = '<div class="no-transactions">No transactions available</div>';
+                return;
+            }
+
+            transactionList.innerHTML = transactions.map(transaction => {
+                const isDebit = transaction.Dr_Amount && parseFloat(transaction.Dr_Amount) > 0;
+                const amount = isDebit ? 
+                    parseFloat(transaction.Dr_Amount) : 
+                    parseFloat(transaction.Cr_Amount);
+                const formattedAmount = isDebit ? 
+                    `-$${amount.toFixed(2)}` : 
+                    `+$${amount.toFixed(2)}`;
+                const amountClass = isDebit ? 'amount-debit' : 'amount-credit';
+                
+                const date = new Date(transaction.Deposit_Date);
+                const formattedDate = date.toLocaleString();
+
+                return `
+                    <div class="transaction-item">
+                        <div class="transaction-details">
+                            <div class="transaction-type">${transaction.Transaction_Type}</div>
+                            <div class="transaction-date">${formattedDate}</div>
+                            ${transaction.Transaction_ID_Blockchain ? 
+                                `<div class="transaction-hash">TX: ${transaction.Transaction_ID_Blockchain}</div>` : 
+                                ''}
+                        </div>
+                        <div class="transaction-amount ${amountClass}">
+                            ${formattedAmount}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+
+   // Helper function to show/hide views
+   function showView(viewId) {
+            document.querySelectorAll('.view').forEach(view => {
+                view.style.display = 'none';
             });
+            document.getElementById(viewId).style.display = 'block';
         }
-    }
 
-    function filterTransactions(type, transactions) {
-        if (!Array.isArray(transactions)) {
-            console.error('Invalid transactions data');
+        async function showIncomeView() {
+    showView('incomeView');
+
+    try {
+        const response = await fetch(`https://leostar.live:5001/get_income?telegram_user_id=${userId}`);
+        if (!response.ok) throw new Error('Failed to fetch income details');
+
+        const data = await response.json();
+
+        const incomeList = document.getElementById('incomeList');
+        const totalIncomeElement = document.getElementById('totalIncome');
+
+        if (!incomeList || !totalIncomeElement) {
+            console.error("Error: 'incomeList' or 'totalIncome' element not found in the DOM.");
             return;
         }
 
-        let filteredTransactions;
-        switch (type) {
-            case 'debit':
-                filteredTransactions = transactions.filter(tx => tx.type === 'debit');
-                break;
-            case 'credit':
-                filteredTransactions = transactions.filter(tx => tx.type === 'credit');
-                break;
-            default:
-                filteredTransactions = transactions;
-        }
+        // Clear previous content
+        incomeList.innerHTML = "";
 
-        displayTransactions(filteredTransactions);
-    }
-    function displayTransactions(transactions) {
-        const transactionList = document.getElementById('transactionList');
-        if (!transactionList) return;
-
-        if (!Array.isArray(transactions) || transactions.length === 0) {
-            transactionList.innerHTML = '<div class="no-transactions">No transactions available</div>';
+        if (data.length === 0) {
+            incomeList.innerHTML = "<tr><td colspan='4'>No income transactions found.</td></tr>";
+            totalIncomeElement.textContent = "0";
             return;
         }
 
-        transactionList.innerHTML = transactions.map(transaction => `
-            <div class="transaction-item ${transaction.type}">
-                <div class="transaction-type">
-                    ${transaction.type === 'debit' ? 'Debit' : 'Credit'}
-                </div>
-                <div class="transaction-amount">
-                    ${transaction.type === 'debit' ? '-' : '+'} $${parseFloat(transaction.amount).toFixed(2)}
-                </div>
-                <div class="transaction-date">
-                    ${new Date(transaction.date).toLocaleString()}
-                </div>
-            </div>
-        `).join('');
+        // Calculate total income
+        let totalIncome = 0;
+
+        data.forEach(transaction => {
+            if (transaction.credit_amount > 0) {
+                totalIncome += transaction.credit_amount;
+            }
+
+            const row = document.createElement("tr");
+            row.innerHTML = `
+                <td>${new Date(transaction.time).toLocaleString()}</td>
+                <td>${transaction.credit_amount.toFixed(2)}</td>
+                <td>${transaction.associated_username || 'N/A'}</td>
+                <td>${transaction.transaction_type || 'N/A'}</td>
+            `;
+            incomeList.appendChild(row);
+        });
+
+        totalIncomeElement.textContent = `${totalIncome.toFixed(2)} SOL`;
+
+    } catch (error) {
+        console.error('Error fetching income details:', error);
+        webapp.showPopup({
+            title: 'Error',
+            message: 'Failed to load income details. Please try again later.',
+            buttons: [{ type: 'ok' }]
+        });
     }
-
-
-
-    // Cleanup when the page is closed
-    window.addEventListener('beforeunload', function() {
-        if (balanceCheckInterval) {
-            clearInterval(balanceCheckInterval);
-        }
-    });
+}
 </script>
 </body>
 </html>

@@ -69,52 +69,131 @@ def stake():
     data = request.get_json()
     user_id = data.get('userId')
     amount = data.get('amount')
-    
+
+    if amount <= 0:
+        return jsonify({'error': 'Invalid stake amount'}), 400
+
     conn = None
     cursor = None
-    
+
     try:
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
-        
+
         # Start transaction
         conn.start_transaction()
-        
-        # Check if user has sufficient balance
+
+        # Fetch user details
         cursor.execute(
-            'SELECT Deposit_Balance FROM Users WHERE Telegram_User_ID = %s', (user_id,)
+            'SELECT Deposit_Balance, Ref_ID FROM Users WHERE Telegram_User_ID = %s', (user_id,)
         )
         user = cursor.fetchone()
-        
         if not user or user['Deposit_Balance'] < amount:
             raise ValueError('Insufficient balance')
-        
-        # Update balances
+
+        # Deduct stake amount from user balance and Increase Stake Multiple
         cursor.execute(
-            'UPDATE Users SET Deposit_Balance = Deposit_Balance - %s, Stake_Balance = Stake_Balance + %s WHERE Telegram_User_ID = %s',
-            (amount, amount, user_id)
+            'UPDATE Users SET Deposit_Balance = Deposit_Balance - %s, Stake_Balance = Stake_Balance + %s, Stake_Multiple = Stake_Multiple + %s WHERE Telegram_User_ID = %s',
+            (amount, amount, amount/10, user_id)
         )
         
-        # Log the transaction
+        print("1st done")
+        # Log stake transaction
         cursor.execute(
-            'INSERT INTO Deposit_Transactions (Telegram_User_ID, Deposit_Date, Dr_Amount, Cr_Amount, Balance, Transation_Type) '
+            'INSERT INTO Deposit_Transactions (Telegram_User_ID, Deposit_Date, Dr_Amount, Cr_Amount, Balance, Transaction_Type) '
             'VALUES (%s, NOW(), %s, 0, (SELECT Deposit_Balance FROM Users WHERE Telegram_User_ID = %s), "Stake")',
             (user_id, amount, user_id)
         )
-        
+        print("2st done")
+        # Calculate distribution amounts
+        community_wallet_amount = amount * 0.10
+        system_donation_amount = amount * 0.20
+        referrer_amount = amount * 0.20
+        staker_distribution_amount = amount * 0.50
+
+        # Fetch current balance of Community Wallet
+        cursor.execute(
+            'SELECT COALESCE(SUM(Cr_Amount) - SUM(Dr_Amount), 0) AS balance FROM Community_Wallet'
+        )
+        result = cursor.fetchone()
+        community_wallet_balance = float(result['balance']) if result and 'balance' in result else 0
+        print(community_wallet_balance, "CM balance")
+        try:
+            community_wallet_balance = community_wallet_balance[0] if community_wallet_balance else 0
+        except:
+            community_wallet_balance = community_wallet_balance
+        print("3st done")
+        # Credit Community Wallet
+        cursor.execute(
+            'INSERT INTO Community_Wallet (Telegram_User_ID, Deposit_Date, Dr_Amount, Cr_Amount, Balance, Transaction_Type) '
+            'VALUES (%s, NOW(), 0, %s, %s, "Stake Contribution")',
+            (user_id, community_wallet_amount, community_wallet_balance + community_wallet_amount)
+        )
+
+        # Fetch current balance of System Donation
+        cursor.execute(
+            'SELECT COALESCE(SUM(Cr_Amount) - SUM(Dr_Amount), 0) FROM System_Donation'
+        )
+        result2 = cursor.fetchone()
+        system_donation_balance = float(result2['balance']) if result2 and 'balance' in result2 else 0
+        try:
+            system_donation_balance = system_donation_balance[0] if system_donation_balance else 0
+        except:
+            system_donation_balance = system_donation_balance
+        print("4st done")
+        # Credit System Donation
+        cursor.execute(
+            'INSERT INTO System_Donation (Telegram_User_ID, Deposit_Date, Dr_Amount, Cr_Amount, Balance, Transaction_Type) '
+            'VALUES (%s, NOW(), 0, %s, %s, "Stake Contribution")',
+            (user_id, system_donation_amount, system_donation_balance + system_donation_amount)
+        )
+        print("5st done")
+        # Credit Referrer if exists
+        if user['Ref_ID']:
+            cursor.execute(
+                'UPDATE Users SET Withdrawal_Balance = Withdrawal_Balance + %s WHERE Telegram_User_ID = %s',
+                (referrer_amount, user['Ref_ID'])
+            )
+            cursor.execute(
+                'INSERT INTO Deposit_Transactions (Telegram_User_ID, Deposit_Date, Dr_Amount, Cr_Amount, Balance, Transaction_Type) '
+                'VALUES (%s, NOW(), 0, %s, (SELECT Deposit_Balance FROM Users WHERE Telegram_User_ID = %s), "Referral Bonus")',
+                (user['Ref_ID'], referrer_amount, user['Ref_ID'])
+            )
+        print("6st done")
+        # Distribute among all stakers
+        cursor.execute('SELECT Telegram_User_ID, Stake_Multiple FROM Users WHERE Stake_Balance > 0')
+        stakers = cursor.fetchall()
+        total_multiple = sum(staker['Stake_Multiple'] for staker in stakers if staker['Stake_Multiple'] > 0)
+        print("7st done")
+        if total_multiple > 0:
+            for staker in stakers:
+                user_share = (staker['Stake_Multiple'] / total_multiple) * staker_distribution_amount
+                cursor.execute(
+                    'UPDATE Users SET Deposit_Balance = Deposit_Balance + %s WHERE Telegram_User_ID = %s',
+                    (user_share, staker['Telegram_User_ID'])
+                )
+                cursor.execute(
+                    'INSERT INTO Deposit_Transactions (Telegram_User_ID, Transaction_ID_Blockchain Deposit_Date, Dr_Amount, Cr_Amount, Balance, Transaction_Type) '
+                    'VALUES (%s,%s, NOW(), 0, %s, (SELECT Deposit_Balance FROM Users WHERE Telegram_User_ID = %s), "Staking Reward")',
+                    (staker['Telegram_User_ID'],user_id , user_share, staker['Telegram_User_ID'])
+                )
+        print("8st done")
         conn.commit()
-        
-    
+        return jsonify({'success': 'Staked Successfully'})
+
     except Exception as e:
+        print(f"Error: {str(e)}")  # Debugging line
         if conn:
             conn.rollback()
         return jsonify({'error': str(e)}), 400
-    
+
     finally:
         if cursor:
             cursor.close()
         if conn:
             conn.close()
+
+
 
 def get_telegram_username(user_id):
     url = f"https://api.telegram.org/bot{BOT_TOKEN}/getChat?chat_id={user_id}"
@@ -239,7 +318,7 @@ def process_withdrawal():
         
         # Log the withdrawal transaction
         cursor.execute(
-            'INSERT INTO Deposit_Transactions (Telegram_User_ID, Deposit_Date, Dr_Amount, Cr_Amount, Balance, Transation_Type) '
+            'INSERT INTO Deposit_Transactions (Telegram_User_ID, Deposit_Date, Dr_Amount, Cr_Amount, Balance, Transaction_Type) '
             'VALUES (%s, NOW(), %s, 0, (SELECT Withdrawal_Balance FROM Users WHERE Telegram_User_ID = %s), "Withdrawal")',
             (telegram_user_id, amount, telegram_user_id)
         )
@@ -260,6 +339,8 @@ def process_withdrawal():
             cursor.close()
         if conn:
             conn.close()
+
+
 
 @app.route("/get_referrals", methods=["GET"])
 def get_referrals():
@@ -291,7 +372,7 @@ def get_referrals():
             
             # Calculate earnings from this referral
             cursor.execute(
-                "SELECT SUM(Cr_Amount) as earnings FROM Deposit_Transactions WHERE Telegram_User_ID = %s AND Transation_Type = 'Referral'",
+                "SELECT SUM(Cr_Amount) as earnings FROM Deposit_Transactions WHERE Telegram_User_ID = %s AND Transaction_Type = 'Referral'",
                 (ref_id,)
             )
             earnings_result = cursor.fetchone()
@@ -316,6 +397,44 @@ def get_referrals():
         
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+
+@app.route('/get_income', methods=['GET'])
+def get_income():
+    telegram_user_id = request.args.get('telegram_user_id')
+    if not telegram_user_id:
+        return jsonify({"error": "telegram_user_id is required"}), 400
+    
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    # Fetch relevant transactions
+    query = """
+    SELECT dt.Transaction_ID_Blockchain,Deposit_Date , dt.Cr_Amount, dt.Transaction_Type, u.Username
+    FROM Deposit_Transactions dt
+    LEFT JOIN Users u ON u.Telegram_User_ID = (
+        SELECT Used_By FROM Wallet_Addresses WHERE Wallet_Address = dt.Transaction_ID_Blockchain LIMIT 1
+    )
+    WHERE dt.Telegram_User_ID = %s AND dt.Transaction_Type IN ('Referral Bonus', 'Staking Reward')
+    """
+    cursor.execute(query, (telegram_user_id,))
+
+    transactions = cursor.fetchall()
+    
+    conn.close()
+    
+    result = []
+    for transaction in transactions:
+        result.append({
+            "transaction_id_blockchain": transaction["Transaction_ID_Blockchain"],
+            "credit_amount": float(transaction["Cr_Amount"]),
+            "transaction_type": transaction["Transaction_Type"],
+            "associated_username": transaction["Username"]
+            "time": transaction["Deposit_Date"]
+        })
+    
+    return jsonify(result)
+
 
 
 if __name__ == "__main__":
