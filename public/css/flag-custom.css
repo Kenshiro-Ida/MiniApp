@@ -1,0 +1,212 @@
+.flags {
+  position: relative;
+  width: 100%;
+  height: 100vh;
+  top:-100px;
+}
+
+.flag {
+  position: absolute;
+  left: var(--flag-left-offset);
+  top: var(--flag-top-offset);
+  bottom: 0;
+  display: block;
+  width: var(--flag-radius);
+  height: var(--flag-radius);
+  animation: float-up var(--flag-float-duration) var(--flag-float-delay) ease-in infinite;
+}
+.flag::before {
+  position: absolute;
+  content: "";
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  animation: var(--flag-sway-type) var(--flag-sway-duration) var(--flag-sway-delay) ease-in-out alternate infinite;
+}
+.flag:nth-child(0) {
+  --flag-left-offset: 22vw;
+  --flag-top-offset: 50vh;
+  --flag-radius: 5vw;
+  --flag-float-duration: 1s;
+  --flag-sway-duration: 2s;
+  --flag-float-delay: 1s;
+  --flag-sway-delay: 1s;
+  --flag-sway-type: sway-right-to-left;
+}
+.flag:nth-child(1) {
+  --flag-left-offset: 2vw;
+  --flag-top-offset: 15vh;
+  --flag-radius: 5vw;
+  --flag-float-duration: 2s;
+  --flag-sway-duration: 2s;
+  --flag-float-delay: 1s;
+  --flag-sway-delay: 1s;
+  --flag-sway-type: sway-right-to-left;
+}
+.flag:nth-child(2) {
+  --flag-left-offset: 6vw;
+  --flag-top-offset: 25vh;
+  --flag-radius: 5vw;
+  --flag-float-duration: 2s;
+  --flag-sway-duration: 2s;
+  --flag-float-delay: 1s;
+  --flag-sway-delay: 1s;
+  --flag-sway-type: sway-right-to-left;
+}
+.flag:nth-child(3) {
+  --flag-left-offset: 12vw;
+  --flag-top-offset: 5vh;
+  --flag-radius: 5vw;
+  --flag-float-duration: 1s;
+  --flag-sway-duration: 2s;
+  --flag-float-delay: 1s;
+  --flag-sway-delay: 1s;
+  --flag-sway-type: sway-right-to-left;
+}
+.flag:nth-child(4) {
+  --flag-left-offset: 20vw;
+  --flag-top-offset: 45vh;
+  --flag-radius: 5vw;
+  --flag-float-duration: 2s;
+  --flag-sway-duration: 2s;
+  --flag-float-delay: 1s;
+  --flag-sway-delay: 1s;
+  --flag-sway-type: sway-right-to-left;
+}
+.flag:nth-child(5) {
+  --flag-left-offset: 32vw;
+  --flag-top-offset: 40vh;
+  --flag-radius: 5vw;
+  --flag-float-duration: 2s;
+  --flag-sway-duration: 2s;
+  --flag-float-delay: 1s;
+  --flag-sway-delay: 1s;
+  --flag-sway-type: sway-right-to-left;
+}
+.flag:nth-child(6) {
+  --flag-left-offset: 62vw;
+  --flag-top-offset: 25vh;
+  --flag-radius: 5vw;
+  --flag-float-duration: 3s;
+  --flag-sway-duration: 2s;
+  --flag-float-delay: 1s;
+  --flag-sway-delay: 1s;
+  --flag-sway-type: sway-right-to-left;
+}
+.flag:nth-child(7) {
+  --flag-left-offset: 36vw;
+  --flag-top-offset: 65vh;
+  --flag-radius: 5vw;
+  --flag-float-duration: 1s;
+  --flag-sway-duration: 2s;
+  --flag-float-delay: 1s;
+  --flag-sway-delay: 1s;
+  --flag-sway-type: sway-right-to-left;
+}
+.flag:nth-child(8) {
+  --flag-left-offset: 32vw;
+  --flag-top-offset: 75vh;
+  --flag-radius: 5vw;
+  --flag-float-duration: 1s;
+  --flag-sway-duration: 2s;
+  --flag-float-delay: 1s;
+  --flag-sway-delay: 1s;
+  --flag-sway-type: sway-right-to-left;
+}
+.flag:nth-child(9) {
+  --flag-left-offset: 10vw;
+  --flag-top-offset: -15vh;
+  --flag-radius: 5vw;
+  --flag-float-duration: 2s;
+  --flag-sway-duration: 2s;
+  --flag-float-delay: 1s;
+  --flag-sway-delay: 1s;
+  --flag-sway-type: sway-right-to-left;
+}
+.flag:nth-child(10) {
+  --flag-left-offset: 40vw;
+  --flag-top-offset: 1vh;
+  --flag-radius: 5vw;
+  --flag-float-duration: 2s;
+  --flag-sway-duration: 2s;
+  --flag-float-delay: 1s;
+  --flag-sway-delay: 1s;
+  --flag-sway-type: sway-right-to-left;
+}
+
+.flag:nth-child(11) {
+  --flag-left-offset: 70vw;
+  --flag-top-offset: -10vh;
+  --flag-radius: 5vw;
+  --flag-float-duration: 1s;
+  --flag-sway-duration: 2s;
+  --flag-float-delay: 1s;
+  --flag-sway-delay: 1s;
+  --flag-sway-type: sway-right-to-left;
+  border:30px solid red;
+}
+.flag:nth-child(12) {
+  --flag-left-offset: 80vw;
+  --flag-top-offset: 2vh;
+  --flag-radius: 5vw;
+  --flag-float-duration: 3s;
+  --flag-sway-duration: 2s;
+  --flag-float-delay: 1s;
+  --flag-sway-delay: 1s;
+  --flag-sway-type: sway-right-to-left;
+}
+.flag:nth-child(13) {
+  --flag-left-offset: 60vw;
+  --flag-top-offset: 8vh;
+  --flag-radius: 5vw;
+  --flag-float-duration: 1s;
+  --flag-sway-duration: 2s;
+  --flag-float-delay: 1s;
+  --flag-sway-delay: 1s;
+  --flag-sway-type: sway-right-to-left;
+}
+.flag:nth-child(14) {
+  --flag-left-offset: 50vw;
+  --flag-top-offset: 15vh;
+  --flag-radius: 5vw;
+  --flag-float-duration: 2s;
+  --flag-sway-duration: 2s;
+  --flag-float-delay: 1s;
+  --flag-sway-delay: 1s;
+  --flag-sway-type: sway-right-to-left;
+}
+.flag:nth-child(15) {
+  --flag-left-offset: 90vw;
+  --flag-top-offset: 10vh;
+  --flag-radius: 5vw;
+  --flag-float-duration: 3s;
+  --flag-sway-duration: 2s;
+  --flag-float-delay: 1s;
+  --flag-sway-delay: 1s;
+  --flag-sway-type: sway-right-to-left;
+}
+
+@keyframes float-up {
+ 0% { transform: scale(0); }
+  25% { opacity: 1; }
+  100% { opacity: 0; }
+  
+  
+  }
+@keyframes sway-left-to-right {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateY(50%);
+  }
+}
+@keyframes sway-right-to-left {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateY(50%);
+  }
+}

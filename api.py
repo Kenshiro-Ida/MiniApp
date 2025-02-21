@@ -429,7 +429,7 @@ def get_income():
             "transaction_id_blockchain": transaction["Transaction_ID_Blockchain"],
             "credit_amount": float(transaction["Cr_Amount"]),
             "transaction_type": transaction["Transaction_Type"],
-            "associated_username": transaction["Username"]
+            "associated_username": transaction["Username"],
             "time": transaction["Deposit_Date"]
         })
     

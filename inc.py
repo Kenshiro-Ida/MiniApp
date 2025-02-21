@@ -22,7 +22,7 @@ def create_wallet():
 # Function to insert wallets into the database
 def insert_wallets(n):
     try:
-        connection = mysql.connector.connect(**DB_CONFIG)
+        connection = mysql.connector.connect(**DB_CONFIG, auth_plugin='mysql_native_password')
         cursor = connection.cursor()
         
         for _ in range(n):

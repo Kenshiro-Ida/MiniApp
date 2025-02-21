@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Withdrawal</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: #aaeae9;
+            color: var(--tg-theme-text-color, #ffffff);
+            margin: 0;
+            padding: 16px;
+            text-align: center;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            color: #038597;
+        }
+        .input-box {
+            background: white;
+            padding: 28px;
+            border-radius: 12px;
+            text-align: left;
+            border: 1px solid #038597;
+            color: #038597;
+            font-weight: bold;
+            font-size: 16px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            margin-bottom: 10px;
+        }
+        .input-box input {
+            width: 100%;
+            padding: 10px;
+            font-size: 16px;
+            margin-top: 10px;
+            border-radius: 8px;
+            border: 1px solid #038597;
+            color: #333;
+        }
+        .send-button {
+            background-color: #038597;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 12px 24px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+        .send-button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">Withdrawal</div>
+        
+        <div class="input-box">
+            <label for="walletAddress">🔑 Wallet Address</label>
+            <input type="text" id="walletAddress" placeholder="Enter wallet address">
+        </div>
+        
+        <div class="input-box">
+            <label for="amount">💸 Amount</label>
+            <input type="number" id="amount" placeholder="Enter amount to withdraw">
+        </div>
+        
+        <button class="send-button" id="sendButton" onclick="processWithdrawal()" disabled>Send</button>
+    </div>
+
+    <script>
+        const webapp = window.Telegram.WebApp;
+        webapp.ready();
+        
+        
+        const walletAddressInput = document.getElementById('walletAddress');
+        const amountInput = document.getElementById('amount');
+        const sendButton = document.getElementById('sendButton');
+
+        walletAddressInput.addEventListener('input', validateInputs);
+        amountInput.addEventListener('input', validateInputs);
+
+        function validateInputs() {
+            const walletAddress = walletAddressInput.value.trim();
+            const amount = amountInput.value.trim();
+            sendButton.disabled = !(walletAddress && amount);
+        }
+
+        function processWithdrawal() {
+            const walletAddress = walletAddressInput.value.trim();
+            const amount = amountInput.value.trim();
+            
+            if (walletAddress && amount) {
+                alert(Withdrawal request: Sending $${amount} to wallet address: ${walletAddress});
+
+            } else {
+                alert('Please fill in both wallet address and amount');
+            }
+        }
+    </script>
+</body>
+</html>
